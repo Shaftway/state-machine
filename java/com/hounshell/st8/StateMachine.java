@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.function.Consumer;
 
-public class StateMachine<T> {
+public class StateMachine<T> implements ReadableStateMachine<T> {
     private final ArrayList<Transition> validTransitions = new ArrayList<>();
     private final LinkedHashMap<CallbackToken, CallbackWrapper<T, ?, ?>> callbacks = new LinkedHashMap<>();
     private T currentState;
