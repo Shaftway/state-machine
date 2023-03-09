@@ -236,4 +236,16 @@ public class StateMachineTest {
                 IllegalStateException.class,
                 () -> stateMachine.transition(new TrafficLight.Yellow() {}));
     }
+
+    @Test
+    public void InvalidTransitionsAreCaughtEarly() {
+        StateMachine<TrafficLight> stateMachine = TrafficLight.getStateMachine();
+
+        stateMachine.addCallbackFromAnythingTo(TrafficLight.Yellow.class, () ->
+            assertThrows(
+                    InvalidTransitionException.class,
+                    () -> stateMachine.transition(new TrafficLight.Green() {})));
+
+        stateMachine.transition(new TrafficLight.Yellow() {});
+    }
 }
