@@ -16,19 +16,35 @@ import java.util.Scanner;
  */
 public class TurnstileDemo {
     /** Sentinel class for identifying turnstile states. */
-    public sealed interface TurnstileState {}
+    public interface TurnstileState {}
 
     /** State indicating that the turnstile is locked. */
-    public record LockedState() implements TurnstileState {}
+    public static final class LockedState implements TurnstileState {
+        @Override
+        public String toString() {
+            return "Locked";
+        }
+    }
 
     /** State indicating that the turnstile is unlocked and how many credits are available. */
-    public record UnlockedState(int credits) implements TurnstileState {}
+    public static final class UnlockedState implements TurnstileState {
+        public final int credits;
+
+        public UnlockedState(int credits) {
+            this.credits = credits;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("Unlocked (%s credits)", credits);
+        }
+    }
 
     /**
      * State machine for the turnstile.
      *
      * The base class (ReadOnlyStateMachine) holds the actual StateMachine instance that is used
-     * for all of the underlying functionality. Using this layer of indirection hides the actual
+     * for all the underlying functionality. Using this layer of indirection hides the actual
      * StateMachine implementation. This helps prevent invalid state transitions. The
      * {@link StateMachine.Builder} can ensure that only transitions between specific pairs of
      * types are allowed, but it can't actually validate business logic. This pattern ensures that
@@ -39,19 +55,24 @@ public class TurnstileDemo {
      * actions can ensure that business logic is followed properly. Callers can still subscribe to
      * state changes and query the current state.
      */
-
-    private static final class TurnstileStateMachine extends ReadOnlyStateMachine<TurnstileState> {
+    public static final class Turnstile extends ReadOnlyStateMachine<TurnstileState> {
         // We use a single static instance of this class because it has no parameters.
         private static final LockedState LOCKED = new LockedState();
 
-        public TurnstileStateMachine() {
-            // Create the underlying state machine and pass it to the base class.
+        public Turnstile() {
+            /*
+             * Create the underlying state machine and pass it to the base class. These aren't
+             * technically necessary, since we have business logic protecting the transitions
+             * in the action methods below, but it's nice to have the guardrails. Note that a
+             * transition from Unlocked to Unlocked has to be explicitly allowed, as otherwise
+             * there would be an error when adding a token to an unlocked turnstile.
+             */
             super(
-                StateMachine.<TurnstileState>newBuilder()
-                    .addValidTransition(LockedState.class, UnlockedState.class)
-                    .addValidTransition(UnlockedState.class, LockedState.class)
-                    .addValidTransition(UnlockedState.class, UnlockedState.class)
-                        .buildWithInitialState(LOCKED));
+                    StateMachine.<TurnstileState>newBuilder()
+                            .addValidTransition(LockedState.class, UnlockedState.class)
+                            .addValidTransition(UnlockedState.class, LockedState.class)
+                            .addValidTransition(UnlockedState.class, UnlockedState.class)
+                            .buildWithInitialState(LOCKED));
         }
 
         /**
@@ -60,52 +81,60 @@ public class TurnstileDemo {
          * @return {@code true} if the user was allowed in, {@code false} otherwise.
          */
         public boolean push() {
-            // If the turnstile is unlocked we need to deduct a credit and maybe switch to Locked.
             if (isState(UnlockedState.class)) {
-                UnlockedState state = (UnlockedState) getCurrentState();
-                if (state.credits <= 1) {
-                    stateMachine.transition(LOCKED);
+                // If the turnstile is unlocked we need to deduct a credit and maybe switch to Locked.
+                int credits = ((UnlockedState) getCurrentState()).credits;
+                if (credits <= 1) {
+                    transition(LOCKED);
                 } else {
-                    stateMachine.transition(new UnlockedState(state.credits - 1));
+                    transition(new UnlockedState(credits - 1));
                 }
 
                 return true;
-            }
 
-            // If the turnstile wasn't unlocked, then indicate that pushing did nothing.
-            return false;
+            } else {
+                // If the turnstile wasn't unlocked, then indicate that pushing did nothing.
+                return false;
+            }
         }
 
         /** Action for the user inserting a coin into the turnstile. */
         public void insertCoin() {
-            // First determine how many credits the turnstile has, add one, and set it to Unlocked.
-            int currentCredit =
+            // Determine how many credits the turnstile has, add one, and set it to Unlocked.
+            int credits =
                     isState(UnlockedState.class) ? ((UnlockedState) getCurrentState()).credits : 0;
 
-            stateMachine.transition(new UnlockedState(currentCredit + 1));
+            transition(new UnlockedState(credits + 1));
         }
     }
-
     /** Simple main() that prompts for a user action and relays it to a turnstile. */
     public static void main(String[] args) {
-        TurnstileStateMachine turnstile = new TurnstileStateMachine();
+        Turnstile turnstile = new Turnstile();
         Scanner input = new Scanner(System.in);
+
+        System.out.println("\nTurnstile is currently " + turnstile.getCurrentState().toString());
+
+        turnstile.addCallbackForAnything((from, to) -> {
+            System.out.println("");
+            System.out.println("Turnstile state has changed");
+            System.out.println("  Was: " + from.toString());
+            System.out.println("  Now: " + to.toString());
+        });
 
         while (true) {
             System.out.println("");
-            System.out.println("Turnstile State: " + turnstile.getCurrentState().toString());
             System.out.println("  1 - Push");
             System.out.println("  2 - Insert Coin");
-            System.out.println("  3 - Exit");
+            System.out.println("  3 - Quit");
             System.out.print("--> ");
 
             switch (input.nextInt()) {
                 case 1:
                     boolean opened = turnstile.push();
                     if (opened) {
-                        System.out.println("The turnstile opened");
+                        System.out.println("\nThe turnstile opened");
                     } else {
-                        System.out.println("The turnstile did not open");
+                        System.out.println("\nThe turnstile did not open");
                     }
                     break;
 
