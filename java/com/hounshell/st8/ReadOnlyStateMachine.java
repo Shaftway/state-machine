@@ -3,10 +3,18 @@ package com.hounshell.st8;
 import java.util.function.Consumer;
 
 public class ReadOnlyStateMachine<T> implements ReadableStateMachine<T> {
-    protected final StateMachine<T> stateMachine;
+    private final StateMachine<T> stateMachine;
 
     protected ReadOnlyStateMachine(StateMachine<T> underlyingStateMachine) {
         this.stateMachine = underlyingStateMachine;
+    }
+
+    protected synchronized void transition(T to) {
+        stateMachine.transition(to);
+    }
+
+    protected synchronized boolean transition(T from, T to) {
+        return stateMachine.transition(from, to);
     }
 
     public T getCurrentState() {
