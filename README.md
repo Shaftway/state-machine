@@ -67,9 +67,12 @@ A turnstile starts off locked. You can insert a coin, at which point it becomes 
 
 ```mermaid
 stateDiagram-v2
+    [*] --> Locked
     Locked --> Unlocked: Insert Coin
     Unlocked --> Unlocked: Insert Coin\nPush
     Unlocked --> Locked: Push
+
+    Unlocked: Unlocked\n(credits)
 ```
 
 ### Creating a builder
