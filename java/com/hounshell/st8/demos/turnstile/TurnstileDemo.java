@@ -16,7 +16,9 @@ import java.util.Scanner;
  */
 public class TurnstileDemo {
     /** Sentinel class for identifying turnstile states. */
-    public interface TurnstileState {}
+    public interface TurnstileState {
+        int getCredits();
+    }
 
     /** State indicating that the turnstile is locked. */
     public static final class LockedState implements TurnstileState {
@@ -24,11 +26,16 @@ public class TurnstileDemo {
         public String toString() {
             return "Locked";
         }
+
+        @Override
+        public int getCredits() {
+            return 0;
+        }
     }
 
     /** State indicating that the turnstile is unlocked and how many credits are available. */
     public static final class UnlockedState implements TurnstileState {
-        public final int credits;
+        private final int credits;
 
         public UnlockedState(int credits) {
             this.credits = credits;
@@ -37,6 +44,11 @@ public class TurnstileDemo {
         @Override
         public String toString() {
             return String.format("Unlocked (%s credits)", credits);
+        }
+
+        @Override
+        public int getCredits() {
+            return credits;
         }
     }
 
@@ -83,7 +95,7 @@ public class TurnstileDemo {
         public boolean push() {
             if (isState(UnlockedState.class)) {
                 // If the turnstile is unlocked we need to deduct a credit and maybe switch to Locked.
-                int credits = ((UnlockedState) getCurrentState()).credits;
+                int credits = getCurrentState().getCredits();
                 if (credits <= 1) {
                     transition(LOCKED);
                 } else {
@@ -101,12 +113,10 @@ public class TurnstileDemo {
         /** Action for the user inserting a coin into the turnstile. */
         public void insertCoin() {
             // Determine how many credits the turnstile has, add one, and set it to Unlocked.
-            int credits =
-                    isState(UnlockedState.class) ? ((UnlockedState) getCurrentState()).credits : 0;
-
-            transition(new UnlockedState(credits + 1));
+            transition(new UnlockedState(getCurrentState().getCredits() + 1));
         }
     }
+
     /** Simple main() that prompts for a user action and relays it to a turnstile. */
     public static void main(String[] args) {
         Turnstile turnstile = new Turnstile();
