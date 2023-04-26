@@ -22,7 +22,7 @@ Callbacks may be called in any order. You should not rely on the order of the ca
 
 ### Re-entrancy
 
-It is not uncommon to want to add or remove callbacks or transition again within a callback. This is perfect allowed, with a couple caveats.
+It is not uncommon to want to add or remove callbacks or transition again within a callback. This is perfectly allowed, with a couple caveats.
 
 #### Adding or Removing Callbacks
 
@@ -52,16 +52,16 @@ You may transition state within a callback, but with limitations. The second tra
 
 ```java
 StateMachine<String> stateMachine = ...;
-stateMachine.addCallbackForAnything((from, to) -> stateMachine.transition("Goodbye"));
+stateMachine.addCallbackForAnything((from, to) -> stateMachine.transition("Farewell"));
 stateMachine.addCallbackForAnything((from, to) -> stateMachine.transition("Goodbye"));
 stateMachine.transition("Hello");
 ```
 
-This example would result in an error. Two callbacks have been registered and each tries to change the state. During the transition to "Hello" the first callback asks to change the state to "Goodbye". This transition will be queued. Then the second callback also tries to change the state to "Goodbye". This would add a second transition to the queue, even though it's trying to make the exact same state change. This is not allowed and a `TransitionContentionException` would be thrown by the second callback.
+This example would result in an error. Two callbacks have been registered and each tries to change the state. During the transition to "Hello" the first callback asks to change the state to "Farewell". This transition will be queued. Then the second callback tries to change the state to "Goodbye". This would add a second transition to the queue, even if it was trying to make the exact same state change. This is not allowed and a `TransitionContentionException` would be thrown by the second callback.
 
 ## Full Demo
 
-This demo will incrementally build a turnstile model. It walks through a variety of scenarios, and some code will be rewritten by the end.
+This demo will incrementally build a turnstile model. It walks through a variety of scenarios, and some code will be rewritten by the end. The full code for this demo is available in the `demos/turnstile/` folder.
 
 A turnstile starts off locked. You can insert a coin, at which point it becomes unlocked. If you push a locked turnstile, it won't open. If you push an unlocked turnstile it will consume the coin and then open. Coins can be stacked (if you insert three coins the turnstile can be opened three times). Here's a diagram for all of the valid transitions:
 
@@ -90,7 +90,7 @@ StateMachine.Builder<TurnstileState> turnstileBuilder = StateMachine.<TurnstileS
 
 ### Defining States
 
-At this point lets round out the states that our turnstile can be. According to the above description the turnstile can be locked or unlocked. Also, when unlocked we need to know how many credits the user has.
+At this point let's round out the states that our turnstile can be. According to the above description the turnstile can be locked or unlocked. Also, when unlocked we need to know how many credits the user has.
 
 ```java
 public interface TurnstileState {}
@@ -164,7 +164,9 @@ At this point the turnstile is completely usable. We can add methods that allow 
 
 ```java
 turnstile.addCallbackFromAnythingTo(LockedState.class, () -> System.out.println("Locked"));
-turnstile.addCallbackFromAnythingTo(UnlockedState.class, (unlocked) -> System.out.println("Unlocked, Credits: " + Integer.toString(unlocked.getCredits())));
+turnstile.addCallbackFromAnythingTo(
+    UnlockedState.class,
+    (unlocked) -> System.out.println("Unlocked, Credits: " + Integer.toString(unlocked.getCredits())));
 
 public boolean push(StateMachine<TurnstileState> turnstile) {
     if (turnstile.isState(UnlockedState.class)) {
@@ -174,16 +176,15 @@ public boolean push(StateMachine<TurnstileState> turnstile) {
         } else {
             turnstile.transition(new UnlockedState(credits - 1));
         }
-        
         return true;
+
     } else {
         return false;
     }
 }
 
 public void insertCoin(StateMachine<TurnstileState> turnstile) {
-    int credits =
-    isState(UnlockedState.class) ? ((UnlockedState) getCurrentState()).credits : 0;
+    int credits = isState(UnlockedState.class) ? ((UnlockedState) getCurrentState()).credits : 0;
     turnstile.transition(new UnlockedState(credits + 1));
 }
 ```
@@ -223,12 +224,12 @@ public class Turnstile extends StateMachine<TurnstileState> {
 
 This gives us a cleaner model. `push` and `insertCoin` are now members of Turnstile, which is itself a `StateMachine`. And that pesky little `LOCKED` implementation detail is hidden as a member of this class.
 
-### Deriving from ReadOnlyStateMachine
+### Deriving from ProtectedStateMachine
 
-The above example still isn't perfect. The `transition` methods are still available on `Turnstile`. You could accidentally transition from an Unlocked state with 10 credits to a Locked state. This is technically allowed by the StateMachine, but it breaks our business rules. We could clean this up a bit more by only exposing a read-only facade of the `StateMachine`. A `ReadOnlyStateMachine`...
+The above example still isn't perfect. The `transition` methods are still available on `Turnstile`. You could accidentally transition from an Unlocked state with 10 credits to a Locked state. This is technically allowed by the StateMachine, but it breaks our business rules. We could clean this up a bit more by only exposing a read-only facade of the `StateMachine` where the transition method is protected. A `ProtectedStateMachine`...
 
 ```java
-public final class Turnstile extends ReadOnlyStateMachine<TurnstileState> {
+public final class Turnstile extends ProtectedStateMachine<TurnstileState> {
     private static final LockedState LOCKED = new LockedState();
 
     public Turnstile() {
@@ -237,16 +238,16 @@ public final class Turnstile extends ReadOnlyStateMachine<TurnstileState> {
                 .addValidTransition(LockedState.class, UnlockedState.class)
                 .addValidTransition(UnlockedState.class, LockedState.class)
                 .addValidTransition(UnlockedState.class, UnlockedState.class)
-                    .buildWithInitialState(LOCKED));
+                .buildWithInitialState(LOCKED));
     }
 
     public boolean push() {
         if (isState(UnlockedState.class)) {
             int credits = ((UnlockedState) getCurrentState()).credits;
             if (credits <= 1) {
-                stateMachine.transition(LOCKED);
+                transition(LOCKED);
             } else {
-                stateMachine.transition(new UnlockedState(credits - 1));
+                transition(new UnlockedState(credits - 1));
             }
 
             return true;
@@ -259,11 +260,11 @@ public final class Turnstile extends ReadOnlyStateMachine<TurnstileState> {
         int credits =
                 isState(UnlockedState.class) ? ((UnlockedState) getCurrentState()).credits : 0;
 
-        stateMachine.transition(new UnlockedState(credits + 1));
+        transition(new UnlockedState(credits + 1));
     }
 }
 ```
 
-`ReadOnlyStateMachine` takes an underlying `StateMachine` and forwards all calls to it The transition methods are marked as protected so the derived class has access to them, but no other classes do. Now we've got a nicely encapsulated Turnstile class. Callers can still subscribe to state transitions and call the action methods that are exposed, but the underlying transition methods are hidden.
+`ProtectedStateMachine` takes an underlying `StateMachine` and forwards all calls to it The transition methods are marked as protected so the derived class has access to them, but no other classes do. Now we've got a nicely encapsulated Turnstile class. Callers can still subscribe to state transitions and call the action methods that are exposed, but the underlying transition methods are hidden.
 
-Both `StateMachine` and `ReadOnlyStateMachine` implement `ReadableStateMachine`. This interface is useful if you only need the current state or callbacks.
+Both `StateMachine` and `ProtectedStateMachine` implement `ReadableStateMachine`. This interface is useful if you only need the current state or callbacks.

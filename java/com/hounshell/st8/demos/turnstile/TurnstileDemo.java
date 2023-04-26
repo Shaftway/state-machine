@@ -1,6 +1,6 @@
 package com.hounshell.st8.demos.turnstile;
 
-import com.hounshell.st8.ReadOnlyStateMachine;
+import com.hounshell.st8.ProtectedStateMachine;
 import com.hounshell.st8.StateMachine;
 
 import java.util.Scanner;
@@ -10,7 +10,7 @@ import java.util.Scanner;
  *
  * A turnstile is a gate used to ensure that people accessing a resource have paid. Normally the
  * turnstile is locked. A user inserts a coin and it unlocks. They can then push the turnstile and
- * it will open. Pushing the turnstile without inserting a coin wil; result in it not opening. This
+ * it will open. Pushing the turnstile without inserting a coin will result in it not opening. This
  * is a particularly fancy turnstile; if you insert more than one coin it will remain unlocked
  * until you have used up all of your credits.
  */
@@ -43,7 +43,7 @@ public class TurnstileDemo {
     /**
      * State machine for the turnstile.
      *
-     * The base class (ReadOnlyStateMachine) holds the actual StateMachine instance that is used
+     * The base class (ProtectedStateMachine) holds the actual StateMachine instance that is used
      * for all the underlying functionality. Using this layer of indirection hides the actual
      * StateMachine implementation. This helps prevent invalid state transitions. The
      * {@link StateMachine.Builder} can ensure that only transitions between specific pairs of
@@ -55,7 +55,7 @@ public class TurnstileDemo {
      * actions can ensure that business logic is followed properly. Callers can still subscribe to
      * state changes and query the current state.
      */
-    public static final class Turnstile extends ReadOnlyStateMachine<TurnstileState> {
+    public static final class Turnstile extends ProtectedStateMachine<TurnstileState> {
         // We use a single static instance of this class because it has no parameters.
         private static final LockedState LOCKED = new LockedState();
 

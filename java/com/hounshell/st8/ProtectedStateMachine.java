@@ -2,10 +2,10 @@ package com.hounshell.st8;
 
 import java.util.function.Consumer;
 
-public class ReadOnlyStateMachine<T> implements ReadableStateMachine<T> {
+public class ProtectedStateMachine<T> implements ReadableStateMachine<T> {
     private final StateMachine<T> stateMachine;
 
-    protected ReadOnlyStateMachine(StateMachine<T> underlyingStateMachine) {
+    protected ProtectedStateMachine(StateMachine<T> underlyingStateMachine) {
         this.stateMachine = underlyingStateMachine;
     }
 
