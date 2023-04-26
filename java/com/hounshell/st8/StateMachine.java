@@ -1,18 +1,20 @@
 package com.hounshell.st8;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class StateMachine<T> implements ReadableStateMachine<T> {
-    private final ArrayList<Transition> validTransitions = new ArrayList<>();
+    private final List<Transition> validTransitions;
     private final LinkedHashMap<CallbackToken, CallbackWrapper<T, ?, ?>> callbacks = new LinkedHashMap<>();
     private T currentState;
     private T nextState;
     private boolean stateTransitioning = false;
 
     protected StateMachine(Builder<T> builder, T currentState) {
-        this.validTransitions.addAll(builder.validTransitions);
+        this.validTransitions = Collections.unmodifiableList(builder.validTransitions);
         this.currentState = currentState;
     }
 
