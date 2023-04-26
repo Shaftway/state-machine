@@ -59,6 +59,26 @@ stateMachine.transition("Hello");
 
 This example would result in an error. Two callbacks have been registered and each tries to change the state. During the transition to "Hello" the first callback asks to change the state to "Farewell". This transition will be queued. Then the second callback tries to change the state to "Goodbye". This would add a second transition to the queue, even if it was trying to make the exact same state change. This is not allowed and a `TransitionContentionException` would be thrown by the second callback.
 
+## Building, Modifying, Committing
+
+ST8 uses bazel for its build system. Install it and build the core library with:
+
+```shell
+bazel build //java/com/hounshell/st8
+```
+
+You can run the turnstile demo with:
+
+```shell
+bazel run //java/com/hounshell/st8/demos/turnstile
+```
+
+And you can run the full test suite with:
+
+```shell
+bazel test //java-tests/com/hounshell/st8
+```
+
 ## Full Demo
 
 This demo will incrementally build a turnstile model. It walks through a variety of scenarios, and some code will be rewritten by the end. The full code for this demo is available in the `demos/turnstile/` folder.
