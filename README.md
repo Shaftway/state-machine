@@ -10,7 +10,7 @@ The core of ST8 is the `StateMachine` class. This keeps track of the current sta
 
 The last step in building a `StateMachine` instance is providing the initial state. This is just the first state that the machine has. Later you can use the `transition` methods to change the state.
 
-Interested parties can register callbacks for specific state transitions. These callbacks are register for specific type-to-type transitions. During registration a `CallbackToken` is returned. This can be used to remove the callback later.
+Interested parties can register callbacks for specific state transitions. These callbacks are registered for specific type-to-type transitions. During registration a `CallbackToken` is returned. This can be used to remove the callback later.
 
 ### Idempotency
 
@@ -32,17 +32,33 @@ Adding or removing callbacks can be done at any time, but will not take effect u
 
 ```java
 StateMachine<String> stateMachine = ...;
-CallbackToken a = stateMachine.addCallbackForAnything((from, to) -> System.out.println("A"));
+CallbackToken a = stateMachine.addCallbackForAnything((from, to) -> System.out.println("A - " + to.toString()));
 stateMachine.addCallbackForAnything((from, to) -> {
-    System.out.println("B");
+    System.out.println("B - " + to.toString());
     stateMachine.removeCallback(a);
-    stateMachine.addCallbackForAnything((from, to) -> System.out.println("A"));
+    stateMachine.addCallbackForAnything((from, to) -> System.out.println("C - " + to.toString()));
 });
+
+System.out.println("Before");
 stateMachine.transition("Hello");
+System.out.println("Between");
 stateMachine.transition("Goodbye");
+System.out.println("After");
 ```
 
-This example has three callbacks that are registered. In the first transition (to "Hello") both "A" and "B" will be printed. In the second transition (to "Goodbye") "A" and "C" will be printed.
+Output
+
+```
+Before
+A - Hello
+B - Hello
+Between
+B - Goodbye
+C - Goodbye
+After
+```
+
+This example has three callbacks that are registered. In the first transition (to "Hello") both "A" and "B" will be printed. In the second transition (to "Goodbye") "B" and "C" will be printed.
 
 #### State Transitions
 
