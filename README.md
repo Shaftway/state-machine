@@ -110,10 +110,10 @@ stateDiagram-v2
     Locked --> Unlocked: Insert Coin
     Unlocked --> Unlocked: Insert Coin
     Unlocked --> pushed_state: Push
-    pushed_state --> Unlocked: credits &gt 0
+    pushed_state --> Unlocked: credits > 0
     pushed_state --> Locked: credits == 0
 
-    Unlocked: Unlocked\n- credits (int)
+    Unlocked: Unlocked<br>- credits (int)
 ```
 
 ### Creating a builder
